@@ -4,6 +4,11 @@ const clientOrigin = process.env.CLIENT_URL || "http://localhost:3000";
 const authBaseUrl = process.env.BETTER_AUTH_URL || "http://localhost:5000";
 const isProduction = process.env.NODE_ENV === "production";
 
+// Always include the hardcoded production URLs so auth works even if env
+// vars are misconfigured on Vercel.
+const PRODUCTION_FRONTEND = "https://scholarai-client.vercel.app";
+const PRODUCTION_BACKEND = "https://scholarai-server.vercel.app";
+
 // We create Better Auth AFTER mongoose connects (see server.ts), because it
 // needs the raw MongoDB `Db` instance, not a mongoose connection.
 export async function createAuth(db: Db) {
@@ -17,9 +22,14 @@ export async function createAuth(db: Db) {
     database: mongodbAdapter(db),
 
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL: authBaseUrl,
+    baseURL: isProduction ? PRODUCTION_BACKEND : authBaseUrl,
 
-    trustedOrigins: [clientOrigin, authBaseUrl].filter(Boolean),
+    trustedOrigins: [
+      clientOrigin,
+      authBaseUrl,
+      PRODUCTION_FRONTEND,
+      PRODUCTION_BACKEND,
+    ].filter(Boolean),
 
     emailAndPassword: {
       enabled: true,
