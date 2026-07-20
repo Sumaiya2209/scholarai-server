@@ -35,5 +35,7 @@ export async function connectDB(): Promise<void> {
 
 export function getMongoClientDb() {
   const client = mongoose.connection.getClient();
-  return client.db();
+  const dbName =
+    process.env.MONGODB_DB_NAME || process.env.MONGODB_DB || process.env.DATABASE_NAME;
+  return dbName ? client.db(dbName) : client.db();
 }
