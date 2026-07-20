@@ -6,6 +6,7 @@ import chatRoutes from "./routes/chat.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { getAuthInstance, createAuth, setAuthInstance } from "./lib/auth.js";
 import { connectDB, getMongoClientDb } from "./lib/db.js";
+import mongoose from "mongoose";
 
 const app = express();
 
@@ -41,6 +42,26 @@ app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", message: "ScholarAI API is running" });
+});
+
+// Debug endpoint to verify environment and DB state in production
+app.get("/api/debug", async (_req, res) => {
+  try {
+    const dbState = mongoose.connection.readyState; // 0 = disconnected, 1 = connected
+    const dbName = process.env.MONGODB_DB_NAME || process.env.MONGODB_DB || process.env.DATABASE_NAME || null;
+    return res.json({
+      status: "ok",
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        CLIENT_URL: process.env.CLIENT_URL || null,
+        BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || null,
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || null,
+      },
+      db: { state: dbState, name: dbName },
+    });
+  } catch (err) {
+    return res.status(500).json({ status: "error", error: String(err) });
+  }
 });
 
 app.use("/api/papers", paperRoutes);
