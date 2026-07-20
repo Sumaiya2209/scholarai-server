@@ -11,14 +11,18 @@ export async function connectDB(): Promise<void> {
 
   if (!connectionPromise) {
     const uri = process.env.MONGODB_URI;
+    const dbName = process.env.MONGODB_DB_NAME || process.env.MONGODB_DB || process.env.DATABASE_NAME;
     if (!uri) {
       throw new Error("MONGODB_URI is missing in .env");
     }
 
+    const connectOptions: any = {
+      serverSelectionTimeoutMS: 10000,
+    };
+    if (dbName) connectOptions.dbName = dbName;
+
     connectionPromise = mongoose
-      .connect(uri, {
-        serverSelectionTimeoutMS: 10000,
-      })
+      .connect(uri, connectOptions)
       .then((m) => {
         console.log("✅ MongoDB connected");
         return m;

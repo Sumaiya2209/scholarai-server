@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "type": "module",
   "scripts": {
+    "predev": "npx kill-port 5000 || true",
     "dev": "nodemon --watch src --ext ts --exec \"node --loader ts-node/esm src/server.ts\"",
     "build": "tsc",
     "start": "node dist/server.js",

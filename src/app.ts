@@ -59,6 +59,24 @@ app.get("/api/debug", async (_req, res) => {
       User.countDocuments({}),
     ]);
 
+    // Also enumerate collections and sample documents to diagnose mismatch
+    const client = mongoose.connection.getClient();
+    const db = dbName ? client.db(dbName) : client.db();
+    const collections = await db.listCollections().toArray();
+
+    const collInfo = await Promise.all(
+      collections.map(async (c) => {
+        try {
+          const coll = db.collection(c.name);
+          const count = await coll.countDocuments();
+          const sample = await coll.findOne({}, { projection: { _id: 1 } });
+          return { name: c.name, count, sample };
+        } catch (err) {
+          return { name: c.name, error: String(err) };
+        }
+      })
+    );
+
     return res.json({
       status: "ok",
       env: {
@@ -69,6 +87,7 @@ app.get("/api/debug", async (_req, res) => {
       },
       db: { state: dbState, name: dbName },
       counts: { totalPapers, approvedPapers, pendingPapers, rejectedPapers, usersCount },
+      collections: collInfo,
     });
   } catch (err) {
     return res.status(500).json({ status: "error", error: String(err) });

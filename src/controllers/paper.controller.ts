@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Paper } from "../models/Paper.js";
+import { getMongoClientDb } from "../lib/db.js";
 import { ChatMessage } from "../models/ChatMessage.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadPdfBuffer } from "../utils/cloudinary.js";
@@ -81,6 +82,47 @@ export const listPapers = asyncHandler(async (req: Request, res: Response) => {
       .select("-extractedText"),
     Paper.countDocuments(query),
   ]);
+
+  // Fallback: if Mongoose returned no papers but there are documents in
+  // similarly named collections (e.g., 'paper' vs 'papers' or legacy 'items'),
+  // attempt a raw query directly against the MongoDB collection so the
+  // frontend doesn't receive a 500 when a simple collection-name mismatch exists.
+  if (papers.length === 0 && total === 0) {
+    try {
+      const db = getMongoClientDb();
+      const candidateCollections = ["papers", "paper", "items"];
+      for (const collName of candidateCollections) {
+        const exists = (await db.listCollections({ name: collName }).toArray()).length > 0;
+        if (!exists) continue;
+
+        const rawQuery: any = { ...(query as any) };
+        // MongoDB driver doesn't support $text without indexes too, but we'll try.
+        const cursor = db
+          .collection(collName)
+          .find(rawQuery)
+          .sort(sortObj as any)
+          .skip((pageNum - 1) * limitNum)
+          .limit(limitNum)
+          .project({ extractedText: 0 });
+
+        const rawPapers = await cursor.toArray();
+        const rawTotal = await db.collection(collName).countDocuments(rawQuery);
+        if (rawPapers.length > 0) {
+          return res.json({
+            papers: rawPapers,
+            pagination: {
+              page: pageNum,
+              limit: limitNum,
+              total: rawTotal,
+              totalPages: Math.ceil(rawTotal / limitNum),
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Fallback raw collection query failed:", err);
+    }
+  }
 
   res.json({
     papers,

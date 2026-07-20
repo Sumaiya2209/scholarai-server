@@ -12,8 +12,17 @@ async function main() {
   setAuthInstance(auth);
 
   const PORT = Number(process.env.PORT) || 5000;
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`🚀 ScholarAI API running on http://localhost:${PORT}`);
+  });
+
+  server.on("error", (err: any) => {
+    if (err && err.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} is already in use. Kill the process using that port or change PORT.`);
+      process.exit(1);
+    }
+    console.error("Server error:", err);
+    process.exit(1);
   });
 }
 
