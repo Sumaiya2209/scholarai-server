@@ -3,18 +3,19 @@ dotenv.config();
 
 import { connectDB, getMongoClientDb } from "./lib/db.js";
 import { createAuth, setAuthInstance } from "./lib/auth.js";
-import app from "./app.js";
 
 async function main() {
   await connectDB();
 
+  const { default: app } = await import("./app.js");
+
   const auth = await createAuth(getMongoClientDb());
   setAuthInstance(auth);
-
-  const PORT = Number(process.env.PORT) || 5000;
-  const server = app.listen(PORT, () => {
-    console.log(`🚀 ScholarAI API running on http://localhost:${PORT}`);
-  });
+ 
+   const PORT = Number(process.env.PORT) || 5000;
+   const server = app.listen(PORT, () => {
+     console.log(`🚀 ScholarAI API running on http://localhost:${PORT}`);
+   });
 
   server.on("error", (err: any) => {
     if (err && err.code === "EADDRINUSE") {

@@ -6,10 +6,20 @@ import type { Express } from "express";
 
 import { connectDB, getMongoClientDb } from "../src/lib/db.js";
 import { createAuth, setAuthInstance } from "../src/lib/auth.js";
+
+
 import app from "../src/app.js";
 
 // Vercel warm serverless instance-এর মধ্যে initialized app cache থাকবে।
 let appPromise: Promise<Express> | null = null;
+
+
+console.log("Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("API Key:", process.env.CLOUDINARY_API_KEY);
+console.log(
+  "API Secret:",
+  process.env.CLOUDINARY_API_SECRET ? "Loaded" : "Missing"
+);
 
 async function getApp(): Promise<Express> {
   if (!appPromise) {
