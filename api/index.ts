@@ -31,5 +31,18 @@ export default async function handler(
   res: ServerResponse
 ) {
   const expressApp = await getApp();
+
+  const url = new URL(req.url ?? "/", `https://${req.headers.host || "localhost"}`);
+  const pathname = url.pathname;
+  const search = url.search;
+
+  let normalizedPath = pathname;
+  if (pathname === "/") {
+    normalizedPath = "/api/health";
+  } else if (!pathname.startsWith("/api")) {
+    normalizedPath = `/api${pathname}`;
+  }
+
+  req.url = `${normalizedPath}${search}`;
   expressApp(req, res);
 }
