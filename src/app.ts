@@ -7,6 +7,8 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { getAuthInstance, createAuth, setAuthInstance } from "./lib/auth.js";
 import { connectDB, getMongoClientDb } from "./lib/db.js";
 import mongoose from "mongoose";
+import { Paper } from "./models/Paper.js";
+import { User } from "./models/User.js";
 
 const app = express();
 
@@ -49,6 +51,14 @@ app.get("/api/debug", async (_req, res) => {
   try {
     const dbState = mongoose.connection.readyState; // 0 = disconnected, 1 = connected
     const dbName = process.env.MONGODB_DB_NAME || process.env.MONGODB_DB || process.env.DATABASE_NAME || null;
+    const [totalPapers, approvedPapers, pendingPapers, rejectedPapers, usersCount] = await Promise.all([
+      Paper.countDocuments({}),
+      Paper.countDocuments({ status: "approved" }),
+      Paper.countDocuments({ status: "pending" }),
+      Paper.countDocuments({ status: "rejected" }),
+      User.countDocuments({}),
+    ]);
+
     return res.json({
       status: "ok",
       env: {
@@ -58,6 +68,7 @@ app.get("/api/debug", async (_req, res) => {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || null,
       },
       db: { state: dbState, name: dbName },
+      counts: { totalPapers, approvedPapers, pendingPapers, rejectedPapers, usersCount },
     });
   } catch (err) {
     return res.status(500).json({ status: "error", error: String(err) });
