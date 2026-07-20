@@ -4,9 +4,9 @@ dotenv.config();
 import type { IncomingMessage, ServerResponse } from "http";
 import type { Express } from "express";
 
-import { connectDB, getMongoClientDb } from "../src/lib/db";
-import { createAuth, setAuthInstance } from "../src/lib/auth";
-import app from "../src/app";
+import { connectDB, getMongoClientDb } from "../src/lib/db.js";
+import { createAuth, setAuthInstance } from "../src/lib/auth.js";
+import app from "../src/app.js";
 
 // Vercel warm serverless instance-এর মধ্যে initialized app cache থাকবে।
 let appPromise: Promise<Express> | null = null;
