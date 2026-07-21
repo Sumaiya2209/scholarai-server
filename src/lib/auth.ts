@@ -2,7 +2,10 @@ import type { Db } from "mongodb";
 
 const clientOrigin = process.env.CLIENT_URL || "http://localhost:3000";
 const authBaseUrl = process.env.BETTER_AUTH_URL || "http://localhost:5000";
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.VERCEL === "1" ||
+  (typeof process.env.BETTER_AUTH_URL === "string" && process.env.BETTER_AUTH_URL.includes("vercel.app"));
 
 // Always include the hardcoded production URLs so auth works even if env
 // vars are misconfigured on Vercel.
@@ -16,13 +19,19 @@ export async function createAuth(db: Db) {
     import("better-auth"),
     import("better-auth/adapters/mongodb"),
   ]);
+
+  const resolvedBaseURL = isProduction 
+    ? "https://scholarai-client.vercel.app/api/auth" 
+    : (process.env.BETTER_AUTH_URL || "http://localhost:3000/api/auth");
+  console.log(`[Better Auth Init] isProduction=${isProduction}, baseURL=${resolvedBaseURL}, clientOrigin=${clientOrigin}`);
+
   return betterAuth({
     // The installed Better Auth Mongo adapter only accepts the db instance
     // and optional adapter config; the database name is taken from the db.
     database: mongodbAdapter(db),
 
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL: isProduction ? "https://scholarai-client.vercel.app/api/auth" : (process.env.BETTER_AUTH_URL || "http://localhost:3000/api/auth"),
+    baseURL: resolvedBaseURL,
     trustHost: true,
 
     trustedOrigins: [
