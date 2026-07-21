@@ -22,13 +22,16 @@ export async function createAuth(db: Db) {
     database: mongodbAdapter(db),
 
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL: isProduction ? PRODUCTION_BACKEND : authBaseUrl,
+    baseURL: isProduction ? "https://scholarai-client.vercel.app/api/auth" : (process.env.BETTER_AUTH_URL || "http://localhost:3000/api/auth"),
+    trustHost: true,
 
     trustedOrigins: [
       clientOrigin,
       authBaseUrl,
       PRODUCTION_FRONTEND,
       PRODUCTION_BACKEND,
+      "https://scholarai-client.vercel.app",
+      "https://scholarai-client.vercel.app/api/auth",
     ].filter(Boolean),
 
     emailAndPassword: {
