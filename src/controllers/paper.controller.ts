@@ -74,14 +74,44 @@ export const listPapers = asyncHandler(async (req: Request, res: Response) => {
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
   const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 12));
 
-  const [papers, total] = await Promise.all([
-    Paper.find(query)
-      .sort(sortObj as any)
-      .skip((pageNum - 1) * limitNum)
-      .limit(limitNum)
-      .select("-extractedText"),
-    Paper.countDocuments(query),
-  ]);
+  let papers: any[] = [];
+  let total = 0;
+
+  try {
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    [papers, total] = await Promise.all([
+      Paper.find(query)
+        .sort(sortObj as any)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .select("-extractedText"),
+      Paper.countDocuments(query),
+    ]);
+  } catch (err) {
+    console.warn("MongoDB text index search failed, falling back to regex search:", err);
+    delete query.$text;
+
+    if (search) {
+      const escapedSearch = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      query.$or = [
+        { title: { $regex: escapedSearch, $options: "i" } },
+        { abstract: { $regex: escapedSearch, $options: "i" } },
+        { authors: { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
+
+    [papers, total] = await Promise.all([
+      Paper.find(query)
+        .sort(sortObj as any)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .select("-extractedText"),
+      Paper.countDocuments(query),
+    ]);
+  }
 
   // Fallback: if Mongoose returned no papers but there are documents in
   // similarly named collections (e.g., 'paper' vs 'papers' or legacy 'items'),
